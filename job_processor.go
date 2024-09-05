@@ -82,64 +82,11 @@ func processJobs(datetime time.Time, secretName string) error {
 		count++
 	}
 
-	batchSize := 99
-	for i := 0; i < len(jobs); i += batchSize {
-		end := i + batchSize
-		if end > len(jobs) {
-			end = len(jobs)
-		}
-
-		batch := jobs[i:end]
-
-		err := handleJobGroup(float64(i/batchSize), batch)
-
-		if err != nil {
-			log.Printf("Erro ao processar o batch %d ao %d: %v", i, end, err)
-		}
-	}
-
-	return nil
-}
-
-func handleJobGroup(chunkID float64, jobs []JobDataRow) error {
-	data := make([]map[string]any, len(jobs))
-
-	for i := 0; i < len(jobs); i++ {
-		job := jobs[i]
-		var assetID any
-		if job.AssetID.Valid {
-			assetID = job.AssetID.StringVal
-		} else {
-			assetID = nil
-		}
-
-		var status any
-		if job.Status.Valid {
-			status = job.Status.StringVal
-		} else {
-			status = nil
-		}
-
-		data[i] = map[string]any{
-			"chunk_id":                    job.ChunkID,
-			"job_id":                      job.JobID,
-			"asset_id":                    assetID,
-			"created_at_day":              job.CreatedAtDay.Format("2006-01-02T15:04:05Z"),
-			"total_duration":              job.TotalDuration,
-			"total_rewards_consumer":      job.TotalRewardsConsumer,
-			"total_rewards_content_owner": job.TotalRewardsContentOwner,
-			"user_id":                     job.UserID,
-			"status":                      status,
-		}
-	}
-
-	// Call the new method to add data to the blockchain
-	err := addToBlockchain(jobs)
+	err = addToBlockchain(jobs)
 
 	if err != nil {
-		log.Printf("Falha ao adicionar jobs do chunk %f na blockchain: %v", chunkID, err)
-	} else {
-		log.Printf("Jobs do chunk %f adicionados na blockchain com sucesso", chunkID)
+		log.Printf("Erro ao processar todos os jobs: %v", err)
+		return err
 	}
 
 	return nil

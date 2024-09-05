@@ -35,10 +35,11 @@ func addToBlockchain(jobs []JobDataRow) error {
 		return err
 	}
 
-	key := "0x675a916e0fa4bfa9435cafb158173059bc3057bbabd11016ede6f3b7d37add3b"
+	key := "92121b5e15ff80c4d3604cfbcd0fc9ea2d478f68132c8b7f34537aca050ca002"
 	if strings.HasPrefix(key, "0x") {
 		key = key[2:]
 	}
+
 	privateKey, err := crypto.HexToECDSA(key)
 	if err != nil {
 		log.Printf("Erro ao converter chave privada: %v", err)
@@ -67,11 +68,11 @@ func addToBlockchain(jobs []JobDataRow) error {
 		return err
 	}
 	auth.Nonce = big.NewInt(int64(nonce))
-	auth.Value = big.NewInt(0)      // Sem valor transferido
-	auth.GasLimit = uint64(5000000) // Aumenta o GasLimit
+	auth.Value = big.NewInt(0)       // Sem valor transferido
+	auth.GasLimit = uint64(30000000) // Aumenta o GasLimit para 10.000.000
 	auth.GasPrice = gasPrice
 
-	contractAddress := common.HexToAddress("0x54953C813543AAB514E8B91C02680aD530b6ccA6")
+	contractAddress := common.HexToAddress("0xdaBF973C93bFeED8521354416b33c704DCDfFA5e")
 	parsedABI, err := abi.JSON(strings.NewReader(ABI))
 	if err != nil {
 		log.Printf("Erro ao analisar o ABI: %v", err)
@@ -87,6 +88,7 @@ func addToBlockchain(jobs []JobDataRow) error {
 
 	transactions := make([]Transaction, len(jobs))
 	for i, job := range jobs {
+
 		assetID := ""
 		if job.AssetID.Valid {
 			assetID = job.AssetID.StringVal
@@ -106,19 +108,6 @@ func addToBlockchain(jobs []JobDataRow) error {
 			TotalRewardsContentOwner: totalRewardsContentOwnerWei,
 		}
 	}
-
-	callData, err := parsedABI.Pack("batchInsertRecords", transactions)
-	if err != nil {
-		log.Printf("Erro ao empacotar os dados da transação: %v", err)
-		return err
-	}
-
-	gasLimit, err := client.EstimateGas(context.Background(), ethereum.CallMsg{
-		To:   &contractAddress,
-		Data: callData,
-	})
-
-	auth.GasLimit = gasLimit + gasLimit/5 // Increase gas limit by 20%
 
 	tx, err := contract.Transact(auth, "batchInsertRecords", transactions)
 	if err != nil {
